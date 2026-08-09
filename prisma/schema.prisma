@@ -1,0 +1,100 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model category {
+  id            Int           @id @default(autoincrement())
+  category_name String?       @db.VarChar(255)
+  subcategory   subcategory[]
+}
+
+model comment {
+  id             Int       @id @default(autoincrement())
+  job_id         Int?
+  commentator_id Int?
+  date_comment   DateTime? @db.Date
+  content        String?   @db.VarChar(255)
+  stars          Int?
+  job            job?      @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_comment_job")
+  users          users?    @relation(fields: [commentator_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_comment_users")
+}
+
+model detail_subcategory {
+  id             Int          @id @default(autoincrement())
+  name           String?      @db.VarChar(255)
+  subcategory_id Int?
+  subcategory    subcategory? @relation(fields: [subcategory_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_detail_subcategory_subcategory")
+  job            job[]
+}
+
+model job {
+  id                    Int                 @id @default(autoincrement())
+  job_name              String?             @db.VarChar(255)
+  rate                  Int?
+  salary                Int?
+  picture               String?
+  description           String?
+  short_description     String?
+  stars                 Int?
+  user_created          Int?
+  detail_subcategory_id Int?
+  comment               comment[]
+  detail_subcategory    detail_subcategory? @relation(fields: [detail_subcategory_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_job_detail_subcategory")
+  users                 users?              @relation(fields: [user_created], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_job_users")
+  rent_job              rent_job[]
+}
+
+model rent_job {
+  id        Int       @id @default(autoincrement())
+  job_id    Int?
+  client_id Int?
+  date_rent DateTime? @db.Date
+  finish    Boolean?
+  job       job?      @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rent_job_job")
+  users     users?    @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rent_job_users")
+}
+
+model skill {
+  id   Int     @id @default(autoincrement())
+  name String? @db.VarChar(255)
+}
+
+model subcategory {
+  id                 Int                  @id @default(autoincrement())
+  name               String?              @db.VarChar(255)
+  picture            String?
+  category_id        Int?
+  detail_subcategory detail_subcategory[]
+  category           category?            @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_subcategory_category")
+}
+
+model users {
+  id            Int        @id @default(autoincrement())
+  name          String?    @db.VarChar(255)
+  email         String?    @db.VarChar(255)
+  password      String?    @db.VarChar(255)
+  phone         String?    @db.VarChar(20)
+  birthday      DateTime?  @db.Date
+  gender        String?    @db.VarChar(10)
+  role          String?    @db.VarChar(50)
+  skill         String[]
+  certification String[]
+  avatar        String?
+  auth          auth[]
+  comment       comment[]
+  job           job[]
+  rent_job      rent_job[]
+}
+
+model auth {
+  id            Int     @id @default(autoincrement())
+  refresh_token String?
+  user_id       Int?
+  users         users?  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_auth_users")
+}
