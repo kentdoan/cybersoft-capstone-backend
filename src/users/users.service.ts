@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import * as bcrypt from 'bcrypt';
+import { excludePassword } from 'src/common/helpers/exclude-password.helper';
 
 @Injectable()
 export class UsersService {
@@ -13,69 +15,37 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    await this.prisma.users.create({
-      data: createUserDto,
-    });
-
-    return {
-      statusCode: 201,
-      content: createUserDto,
-      dateTime: new Date().toISOString(),
-    };
+    if (createUserDto.password) {
+      createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
+    }
+    const user = await this.prisma.users.create({ data: createUserDto });
+    return excludePassword(user);
   }
 
   async findAll() {
-    const listUser = await this.prisma.users.findMany();
-
-    return {
-      statusCode: 200,
-      content: listUser,
-      dateTime: new Date().toISOString(),
-    };
+    const users = await this.prisma.users.findMany();
+    return users.map(excludePassword);
   }
 
   async findOne(id: number) {
-    const userByID = await this.prisma.users.findUnique({
-      where: {
-        id: id,
-      },
-    });
-
-    return {
-      statusCode: 200,
-      content: userByID,
-      dateTime: new Date().toISOString(),
-    };
+    const user = await this.prisma.users.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+    return excludePassword(user);
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
-    await this.prisma.users.update({
-      where: {
-        id: id,
-      },
+    if (updateUserDto.password) {
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    }
+    const user = await this.prisma.users.update({
+      where: { id },
       data: updateUserDto,
     });
-
-    return {
-      statusCode: 200,
-      content: updateUserDto,
-      dateTime: new Date().toISOString(),
-    };
+    return excludePassword(user);
   }
 
   async remove(id: number) {
-    await this.prisma.users.delete({
-      where: {
-        id: id,
-      },
-    });
-
-    return {
-      statusCode: 200,
-      message: 'Delete sucessfully',
-      content: null,
-      dateTime: new Date().toISOString(),
-    };
+    await this.prisma.users.delete({ where: { id } });
   }
 
   async findPaging(paginationDto: PaginationDto) {
@@ -85,67 +55,36 @@ export class UsersService {
     const listUser = await this.prisma.users.findMany({
       where: {
         OR: [
-          {
-            name: {
-              contains: keyword,
-            },
-          },
-          {
-            email: {
-              contains: keyword,
-            },
-          },
+          { name: { contains: keyword } },
+          { email: { contains: keyword } },
         ],
       },
       skip,
       take: pageSize,
     });
 
-    const formattedContent = {
-      pageIndex: pageIndex,
-      pageSize: pageSize,
+    return {
+      pageIndex,
+      pageSize,
       totalRow: listUser.length,
       keywords: keyword,
-      data: listUser,
-    };
-
-    return {
-      statusCode: 200,
-      content: formattedContent,
-      dateTime: new Date().toISOString(),
+      data: listUser.map(excludePassword),
     };
   }
 
   async findUserByName(name: string) {
-    const listUser = await this.prisma.users.findMany({
-      where: {
-        name: {
-          contains: name,
-        },
-      },
+    const users = await this.prisma.users.findMany({
+      where: { name: { contains: name } },
     });
-
-    return {
-      statusCode: 200,
-      content: listUser,
-      dateTime: new Date().toISOString(),
-    };
+    return users.map(excludePassword);
   }
 
   async uploadAvatar(id: number, file: Express.Multer.File) {
     const uploadAvatar = await this.cloudinary.uploadImage(file);
-    const updateUser = await this.prisma.users.update({
-      where: {
-        id: id,
-      },
-      data: {
-        avatar: uploadAvatar.secure_url,
-      },
+    const user = await this.prisma.users.update({
+      where: { id },
+      data: { avatar: uploadAvatar.secure_url },
     });
-    return {
-      statusCode: 200,
-      content: updateUser,
-      dateTime: new Date().toISOString(),
-    };
+    return excludePassword(user);
   }
 }

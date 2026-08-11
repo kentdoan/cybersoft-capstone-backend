@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   CreateSubcategoryDto,
   DetailSubcategoryDto,
 } from './dto/create-subcategory.dto';
-import { UpdateSubcategoryDto, UpdateDetailSubcategoryDto } from './dto/update-subcategory.dto';
+import {
+  UpdateSubcategoryDto,
+  UpdateDetailSubcategoryDto,
+} from './dto/update-subcategory.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
@@ -12,86 +15,59 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
 export class SubcategoryService {
   constructor(
     private prisma: PrismaService,
-    private cloudinary: CloudinaryService
+    private cloudinary: CloudinaryService,
   ) {}
 
   async create(createSubcategoryDto: CreateSubcategoryDto) {
     const { name, category_id, list_subcategory } = createSubcategoryDto;
 
-    const newSubCategory = await this.prisma.subcategory.create({
+    const category = await this.prisma.category.findUnique({
+      where: { id: category_id },
+    });
+    if (!category)
+      throw new NotFoundException(`Category with id ${category_id} not found`);
+
+    return this.prisma.subcategory.create({
       data: {
         name,
         category_id,
         detail_subcategory: {
-          create: list_subcategory.map((detail) => ({
-            name: detail.name,
-          })),
+          create: list_subcategory.map((detail) => ({ name: detail.name })),
         },
       },
       include: {
-        detail_subcategory: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        detail_subcategory: { select: { id: true, name: true } },
       },
     });
-
-    return {
-      statusCode: 201,
-      content: newSubCategory,
-      datetime: new Date().toISOString(),
-    };
   }
 
   async findAll() {
     const listSubCategory = await this.prisma.subcategory.findMany({
       include: {
-        detail_subcategory: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        detail_subcategory: { select: { id: true, name: true } },
       },
     });
 
-    const formattedListSubCategory = listSubCategory.map((subCategory) => ({
+    return listSubCategory.map((subCategory) => ({
       id: subCategory.id,
       name_category: subCategory.name,
       picture: subCategory.picture,
       category_id: subCategory.category_id,
       detail_subcategory: subCategory.detail_subcategory,
     }));
-
-    return {
-      statusCode: 200,
-      content: formattedListSubCategory,
-      datetime: new Date().toISOString(),
-    };
   }
 
   async findOne(id: number) {
-    const subCategory = await this.prisma.subcategory.findMany({
+    const subCategory = await this.prisma.subcategory.findUnique({
+      where: { id },
       include: {
-        detail_subcategory: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-      where: {
-        id: id,
+        detail_subcategory: { select: { id: true, name: true } },
       },
     });
 
-    return {
-      statusCode: 200,
-      content: subCategory,
-      datetime: new Date().toISOString(),
-    };
+    if (!subCategory)
+      throw new NotFoundException(`Subcategory with id ${id} not found`);
+    return subCategory;
   }
 
   async findPaging(paging: PaginationDto) {
@@ -100,168 +76,103 @@ export class SubcategoryService {
 
     const subCategory = await this.prisma.subcategory.findMany({
       include: {
-        detail_subcategory: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        detail_subcategory: { select: { id: true, name: true } },
       },
-      where: {
-        name: {
-          contains: keyword,
-        },
-      },
+      where: { name: { contains: keyword } },
       skip,
       take: pageSize,
     });
 
-    const formattedListSubCategory = subCategory.map((subCategory) => ({
-      id: subCategory.id,
-      name_category: subCategory.name,
-      picture: subCategory.picture,
-      category_id: subCategory.category_id,
-      detail_subcategory: subCategory.detail_subcategory,
+    const formattedList = subCategory.map((item) => ({
+      id: item.id,
+      name_category: item.name,
+      picture: item.picture,
+      category_id: item.category_id,
+      detail_subcategory: item.detail_subcategory,
     }));
 
-    const formattedPagingList = {
-      pageIndex: pageIndex,
-      pageSize: pageSize,
-      totalRow: formattedListSubCategory.length,
-      keywords: keyword,
-      data: formattedListSubCategory,
-    };
-
     return {
-      statusCode: 200,
-      content: formattedPagingList,
-      datetime: new Date().toISOString(),
+      pageIndex,
+      pageSize,
+      totalRow: formattedList.length,
+      keywords: keyword,
+      data: formattedList,
     };
   }
 
   async update(id: number, updateSubcategoryDto: UpdateSubcategoryDto) {
-    const updatedData = await this.prisma.subcategory.update({
-      where: {
-        id: id,
-      },
+    return this.prisma.subcategory.update({
+      where: { id },
       data: updateSubcategoryDto,
     });
-
-    return {
-      statusCode: 200,
-      content: updatedData,
-      datetime: new Date().toISOString(),
-    };
   }
 
   async remove(id: number) {
-    await this.prisma.subcategory.delete({
-      where: {
-        id: id,
-      },
-    });
-    return {
-      statusCode: 200,
-      content: 'Delete success',
-      datetime: new Date().toISOString(),
-    };
+    await this.prisma.subcategory.delete({ where: { id } });
   }
 
   async createListSubCategory(
     detailSubCategory: DetailSubcategoryDto[],
     id: number,
   ) {
+    const subCategory = await this.prisma.subcategory.findUnique({ where: { id } });
+    if (!subCategory)
+      throw new NotFoundException(`Subcategory with id ${id} not found`);
+
     const newListSubCategory =
       await this.prisma.detail_subcategory.createManyAndReturn({
         data: detailSubCategory.map((detail) => ({
           name: detail.name,
           subcategory_id: id,
         })),
-        select: {
-          id: true,
-          name: true 
-        }
+        select: { id: true, name: true },
       });
 
-    const detailSubCategoryByID =
-      await this.prisma.subcategory.findUnique({
-        where: {
-          id: id,
-        },
-      });
-
-    const formattedDetailSubCategoryByID = {
-      id: id,
-      name: detailSubCategoryByID.name,
-      category_id: detailSubCategoryByID.category_id,
+    return {
+      id,
+      name: subCategory.name,
+      category_id: subCategory.category_id,
       detail_subcategory: newListSubCategory,
-    }
-
-    return {
-      statusCode: 201,
-      content: formattedDetailSubCategoryByID,
-      datetime: new Date().toISOString(),
     };
   }
 
-  async updateListSubCategory (updateDetailSubcategoryDto: UpdateDetailSubcategoryDto, subcategory_id: number, id: number) {
-    const updatedListSubCategory = await this.prisma.detail_subcategory.update({
-      where: {
-        id: id,
-      },
+  async updateListSubCategory(
+    updateDetailSubcategoryDto: UpdateDetailSubcategoryDto,
+    subcategory_id: number,
+    id: number,
+  ) {
+
+    const subCategory = await this.prisma.subcategory.findUnique({
+      where: { id: subcategory_id },
+    });
+    if (!subCategory)
+      throw new NotFoundException(
+        `Subcategory with id ${subcategory_id} not found`,
+      );
+
+    const updatedItem = await this.prisma.detail_subcategory.update({
+      where: { id },
       data: updateDetailSubcategoryDto,
-      select: {
-        id: true,
-        name: true
-      }
+      select: { id: true, name: true },
     });
 
-    const detailSubCategoryByID =
-      await this.prisma.subcategory.findUnique({
-        where: {
-          id: subcategory_id,
-        },
-      });
-
-    const formattedDetailSubCategoryUpdatedByID = {
+    return {
       id: subcategory_id,
-      name: detailSubCategoryByID.name,
-      category_id: detailSubCategoryByID.category_id,
-      detail_subcategory: [updatedListSubCategory],
-    }
-
-    return {
-      statusCode: 200,
-      content: formattedDetailSubCategoryUpdatedByID,
-      datetime: new Date().toISOString(),
+      name: subCategory.name,
+      category_id: subCategory.category_id,
+      detail_subcategory: [updatedItem],
     };
   }
 
-  async deleteListSubCategory (subcategory_id: number, id: number) {
-    await this.prisma.detail_subcategory.delete({
-      where: {
-        id: id,
-      },
-    });
-    return {
-      statusCode: 200,
-      content: 'Delete success',
-      datetime: new Date().toISOString(),
-    };
+  async deleteListSubCategory(subcategory_id: number, id: number) {
+    await this.prisma.detail_subcategory.delete({ where: { id } });
   }
 
-  async uploadPicture (id: number, file: Express.Multer.File) {
+  async uploadPicture(id: number, file: Express.Multer.File) {
     const uploadedData = await this.cloudinary.uploadImage(file);
-    
-    const updatedSubcategory = await this.prisma.subcategory.update({
-      where: { id: id },
+    return this.prisma.subcategory.update({
+      where: { id },
       data: { picture: uploadedData.secure_url },
     });
-
-    return {
-      statusCode: 201,
-      content: updatedSubcategory,
-      datetime: new Date().toISOString(),
-    };
   }
 }

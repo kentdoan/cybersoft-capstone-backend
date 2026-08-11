@@ -1,14 +1,17 @@
 DROP TABLE IF EXISTS users, job, rent_job, comment, subcategory, category, detail_subcategory, skill, auth CASCADE;
+DROP TYPE IF EXISTS "Role" CASCADE;
+
+CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
 
 CREATE TABLE users ( 
 	id SERIAL primary key,
 	name varchar(255),
-	email varchar(255),
+	email varchar(255) UNIQUE,
 	password varchar(255),
 	phone varchar(20),
 	birthday date,
 	gender varchar(10),
-	role varchar(50),
+	role "Role" DEFAULT 'USER',
 	skill text[],
 	certification text[],
 	avatar text
@@ -54,23 +57,25 @@ create table subcategory (
     id serial primary key,
     name varchar(255),
     picture text,
-    category_id int
+    category_id int,
+    UNIQUE(name, category_id)
 );
 
 CREATE TABLE category (
     id SERIAL PRIMARY KEY,
-    category_name varchar(255)
+    category_name varchar(255) UNIQUE
 );
 
 CREATE TABLE detail_subcategory (
     id SERIAL PRIMARY KEY,
     name varchar(255),
-    subcategory_id INT
+    subcategory_id INT,
+    UNIQUE(name, subcategory_id)
 );
 
 CREATE TABLE skill (
     id SERIAL PRIMARY KEY,
-    name varchar(255)
+    name varchar(255) UNIQUE
 );
 
 ALTER TABLE job
@@ -112,14 +117,13 @@ foreign key (user_id) references users(id) on delete cascade;
 -- 0. XÓA SẠCH DỮ LIỆU CŨ VÀ RESET ID VỀ 1
 TRUNCATE TABLE users, job, rent_job, comment, subcategory, category, detail_subcategory, skill, auth RESTART IDENTITY CASCADE;
 
--- 1. THÊM NGƯỜI DÙNG (3 Freelancer, 2 Client)
--- Lưu ý: Cột skill và certification giờ là kiểu mảng (text[]) nên dùng cú pháp ngoặc nhọn '{}'
+-- 1. THÊM NGƯỜI DÙNG 
 INSERT INTO users (name, email, password, phone, birthday, gender, role, skill, certification) VALUES 
-('Trần Tuấn Anh', 'tuananh.dev@gmail.com', '123456aA', '0901112233', '1995-05-12', 'Nam', 'Freelancer', '{"React", "Node.js", "PostgreSQL"}', '{"AWS Certified Developer"}'),
-('Nguyễn Mai Phương', 'maiphuong.client@gmail.com', 'client123', '0912223344', '1990-08-20', 'Nữ', 'Client', NULL, NULL),
-('Lê Hải Đăng', 'haidang.design@gmail.com', 'design123', '0983334455', '1998-11-05', 'Nam', 'Freelancer', '{"Photoshop", "Figma", "UI/UX"}', '{"Google UX Design Certificate"}'),
-('Phạm Thu Thảo', 'thuthao.client@gmail.com', 'client456', '0934445566', '1992-02-14', 'Nữ', 'Client', NULL, NULL),
-('Hoàng Gia Bảo', 'giabao.mkt@gmail.com', 'mkt123', '0975556677', '1996-07-30', 'Nam', 'Freelancer', '{"Facebook Ads", "SEO", "Content"}', '{"Meta Certified Professional"}');
+('Trần Tuấn Anh', 'tuananh.dev@gmail.com', '123456aA', '0901112233', '1995-05-12', 'Nam', 'ADMIN', '{"React", "Node.js", "PostgreSQL"}', '{"AWS Certified Developer"}'),
+('Nguyễn Mai Phương', 'maiphuong.client@gmail.com', 'client123', '0912223344', '1990-08-20', 'Nữ', 'USER', NULL, NULL),
+('Lê Hải Đăng', 'haidang.design@gmail.com', 'design123', '0983334455', '1998-11-05', 'Nam', 'USER', '{"Photoshop", "Figma", "UI/UX"}', '{"Google UX Design Certificate"}'),
+('Phạm Thu Thảo', 'thuthao.client@gmail.com', 'client456', '0934445566', '1992-02-14', 'Nữ', 'USER', NULL, NULL),
+('Hoàng Gia Bảo', 'giabao.mkt@gmail.com', 'mkt123', '0975556677', '1996-07-30', 'Nam', 'USER', '{"Facebook Ads", "SEO", "Content"}', '{"Meta Certified Professional"}');
 
 -- 2. THÊM DANH MỤC LỚN (Category)
 INSERT INTO category (category_name) VALUES 
@@ -127,7 +131,7 @@ INSERT INTO category (category_name) VALUES
 ('Thiết kế & Đồ họa'),
 ('Digital Marketing');
 
--- 3. THÊM DANH MỤC CHI TIẾT (Đã đổi tên từ description_of_job sang subcategory)
+-- 3. THÊM DANH MỤC CHI TIẾT 
 INSERT INTO subcategory (name, picture, category_id) VALUES 
 ('Thiết kế & Lập trình Website', 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=500', 1),
 ('Lập trình Mobile App', 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=500', 1),

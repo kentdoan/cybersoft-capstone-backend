@@ -3,6 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { Reflector } from '@nestjs/core';
 import { tap } from 'rxjs/operators';
+import { CLEAR_CACHE_KEYS } from '../decorators/clear-cache.decorator';
 
 @Injectable()
 export class ClearCacheInterceptor implements NestInterceptor {
@@ -14,7 +15,7 @@ export class ClearCacheInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler) {
     return next.handle().pipe(
       tap(async () => {
-        const cacheKeys = this.reflector.get<string[]>('clear_cache_keys', context.getHandler());
+        const cacheKeys = this.reflector.get<string[]>(CLEAR_CACHE_KEYS, context.getHandler());
         const req = context.switchToHttp().getRequest();
 
         if (cacheKeys && cacheKeys.length > 0) {

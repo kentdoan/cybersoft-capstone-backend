@@ -1,38 +1,41 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsDateString, IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { IsDate, IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 import { Transform } from "class-transformer";
 
 export class RegisterAuthDto {
-    @ApiProperty({ description: 'Tên người dùng' })
+    @ApiProperty({ description: 'User name' })
     @IsString()
-    @IsNotEmpty({ message: 'Tên không được để trống' })
-    @MinLength(3, { message: 'Tên phải có ít nhất 3 ký tự' })
-    @MaxLength(25, { message: 'Tên không được vượt quá 25 ký tự' })
+    @IsNotEmpty({ message: 'Name cannot be empty' })
+    @MinLength(3, { message: 'Name must be at least 3 characters' })
+    @MaxLength(25, { message: 'Name cannot exceed 25 characters' })
     name: string;
 
-    @ApiProperty({ description: 'Email người dùng' })
-    @IsEmail({}, { message: 'Email không đúng định dạng' })
-    @IsNotEmpty({ message: 'Email không được để trống' })
+    @ApiProperty({ description: 'User email' })
+    @IsEmail({}, { message: 'Invalid email format' })
+    @IsNotEmpty({ message: 'Email cannot be empty' })
     email: string;
 
-    @ApiProperty({ description: 'Mật khẩu' })
+    @ApiProperty({ description: 'Password' })
     @IsString()
-    @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
-    @MinLength(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự' })
+    @IsNotEmpty({ message: 'Password cannot be empty' })
+    @MinLength(6, { message: 'Password must be at least 6 characters' })
     password: string;
 
-    @ApiPropertyOptional({ description: 'Số điện thoại' })
+    @ApiPropertyOptional({ description: 'Phone number' })
     @IsOptional()
     @IsString()
     phone?: string;
 
-    @ApiPropertyOptional({ description: 'Ngày sinh (chuỗi ISO)', example: '2026-08-07T17:20:14.930Z' })
+    @ApiPropertyOptional({ description: 'Birthday (ISO string)', example: '2026-08-07' })
     @IsOptional()
-    @Transform(({ value }) => value === '' ? null : value)
-    @IsDateString()
-    birthday?: string; 
+    @Transform(({ value }) => {
+      if (value === '') return null;
+      return new Date(value);
+    })
+    @IsDate({ message: 'Birthday must be a valid date string' })
+    birthday?: Date; 
 
-    @ApiPropertyOptional({ description: 'Giới tính' })
+    @ApiPropertyOptional({ description: 'Gender' })
     @IsOptional()
     @IsString()
     gender?: string;

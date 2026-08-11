@@ -36,7 +36,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
 
     if (!user || !activeToken) {
-      throw new UnauthorizedException('Token không hợp lệ hoặc người dùng đã đăng xuất');
+      throw new UnauthorizedException('Token is not valid or user has logged out');
     }
     
     const { password, ...userWithoutPassword } = user;

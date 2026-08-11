@@ -3,7 +3,7 @@ import { IsNotEmpty, IsNumber, IsString, IsArray, ValidateNested } from "class-v
 import { Type } from "class-transformer";
 
 export class DetailSubcategoryDto {
-    @ApiProperty({ description: 'Tên của thư mục con chi tiết' })
+    @ApiProperty({ description: 'Name of the subcategory' })
     @IsNotEmpty()
     @IsString()
     name: string;

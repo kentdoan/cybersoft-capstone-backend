@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Role } from 'generated/prisma/client';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
@@ -13,65 +14,49 @@ export class JobService {
   ) {}
 
   async create(createJobDto: CreateJobDto, user_created: number) {
-    const newJob = await this.prisma.job.create({
+    return this.prisma.job.create({
       data: {
         ...createJobDto,
-        user_created: user_created, // ID who created
+        user_created: user_created,
       },
     });
-
-    return {
-      statusCode: 201,
-      content: newJob,
-      dateTime: new Date().toISOString(),
-    };
   }
 
   async findAll() {
-    const jobs = await this.prisma.job.findMany();
-
-    return {
-      statusCode: 200,
-      content: jobs,
-      dateTime: new Date().toISOString(),
-    };
+    return this.prisma.job.findMany();
   }
 
   async findOne(id: number) {
     const job = await this.prisma.job.findUnique({
-      where: { id: id },
+      where: { id },
     });
-
-    return {
-      statusCode: 200,
-      content: job,
-      dateTime: new Date().toISOString(),
-    };
+    if (!job) throw new NotFoundException('Job not found');
+    return job;
   }
 
-  async update(id: number, updateJobDto: UpdateJobDto) {
-    const updatedJob = await this.prisma.job.update({
-      where: { id: id },
+  async update(id: number, updateJobDto: UpdateJobDto, userId: number, userRole: Role) {
+    const job = await this.prisma.job.findUnique({ where: { id } });
+    if (!job) throw new NotFoundException('Job not found');
+    if (job.user_created !== userId && userRole !== Role.ADMIN) {
+      throw new ForbiddenException('You do not have permission for this action');
+    }
+
+    return this.prisma.job.update({
+      where: { id },
       data: updateJobDto,
     });
-
-    return {
-      statusCode: 200,
-      content: updatedJob,
-      dateTime: new Date().toISOString(),
-    };
   }
 
-  async remove(id: number) {
-    await this.prisma.job.delete({
-      where: { id: id },
-    });
+  async remove(id: number, userId: number, userRole: Role) {
+    const job = await this.prisma.job.findUnique({ where: { id } });
+    if (!job) throw new NotFoundException('Job not found');
+    if (job.user_created !== userId && userRole !== Role.ADMIN) {
+      throw new ForbiddenException('You do not have permission for this action');
+    }
 
-    return {
-      statusCode: 200,
-      content: 'Delete job success',
-      dateTime: new Date().toISOString(),
-    };
+    await this.prisma.job.delete({
+      where: { id },
+    });
   }
 
   async findPaging(paging: PaginationDto) {
@@ -79,79 +64,53 @@ export class JobService {
     const skip = (pageIndex - 1) * pageSize;
 
     const jobs = await this.prisma.job.findMany({
-      where: {
-        job_name: {
-          contains: keyword,
-        },
-      },
+      where: { job_name: { contains: keyword } },
       skip,
       take: pageSize,
     });
 
-    const formattedContent = {
-      pageIndex: pageIndex,
-      pageSize: pageSize,
+    return {
+      pageIndex,
+      pageSize,
       totalRow: jobs.length,
       keywords: keyword,
       data: jobs,
     };
-
-    return {
-      statusCode: 200,
-      content: formattedContent,
-      dateTime: new Date().toISOString(),
-    };
   }
 
   async findListCategoryWithDetail() {
-    const listCategoryWithDetail = await this.prisma.category.findMany({
+    return this.prisma.category.findMany({
       include: {
         subcategory: {
           include: {
             detail_subcategory: {
-              select: {
-                id: true,
-                name: true,
-              },
+              select: { id: true, name: true },
             },
           },
         },
       },
     });
-
-    return {
-      statusCode: 200,
-      content: listCategoryWithDetail,
-      dateTime: new Date().toISOString(),
-    };
   }
 
   async findListCategoryWithDetailByID(id: number) {
-    const listCategoryWithDetailByID = await this.prisma.category.findUnique({
-      where: { id: id },
+    const category = await this.prisma.category.findUnique({
+      where: { id },
       include: {
         subcategory: {
           include: {
             detail_subcategory: {
-              select: {
-                id: true,
-                name: true,
-              },
+              select: { id: true, name: true },
             },
           },
         },
       },
     });
-
-    return {
-      statusCode: 200,
-      content: listCategoryWithDetailByID,
-      dateTime: new Date().toISOString(),
-    };
+    if (!category) throw new NotFoundException('Category not found');
+    return category;
   }
 
   async findJobByDetailSubcategoryID(id: number) {
-    const job = await this.prisma.job.findMany({
+    const jobs = await this.prisma.job.findMany({
       where: { detail_subcategory_id: id },
       include: {
         detail_subcategory: {
@@ -160,29 +119,17 @@ export class JobService {
             subcategory: {
               select: {
                 name: true,
-                category: {
-                  select: {
-                    category_name: true,
-                  },
-                },
+                category: { select: { category_name: true } },
               },
             },
           },
         },
-        users: {
-          select: {
-            name: true,
-          },
-        },
+        users: { select: { name: true } },
       },
     });
 
-    const formattedContent = job.map((item) => {
-      const {
-        detail_subcategory: detailSubcategory,
-        users: user,
-        ...jobDetail
-      } = item;
+    return jobs.map((item) => {
+      const { detail_subcategory: detailSubcategory, users: user, ...jobDetail } = item;
       return {
         id: item.id,
         job: jobDetail,
@@ -192,17 +139,11 @@ export class JobService {
         name_user_created: user.name,
       };
     });
-
-    return {
-      statusCode: 200,
-      content: formattedContent,
-      dateTime: new Date().toISOString(),
-    };
   }
 
   async findDetailJobById(id: number) {
-    const job = await this.prisma.job.findMany({
-      where: { id: id },
+    const jobs = await this.prisma.job.findMany({
+      where: { id },
       include: {
         detail_subcategory: {
           select: {
@@ -210,29 +151,17 @@ export class JobService {
             subcategory: {
               select: {
                 name: true,
-                category: {
-                  select: {
-                    category_name: true,
-                  },
-                },
+                category: { select: { category_name: true } },
               },
             },
           },
         },
-        users: {
-          select: {
-            name: true,
-          },
-        },
+        users: { select: { name: true } },
       },
     });
 
-    const formattedContent = job.map((item) => {
-      const {
-        detail_subcategory: detailSubcategory,
-        users: user,
-        ...jobDetail
-      } = item;
+    return jobs.map((item) => {
+      const { detail_subcategory: detailSubcategory, users: user, ...jobDetail } = item;
       return {
         id: item.id,
         job: jobDetail,
@@ -242,16 +171,10 @@ export class JobService {
         name_user_created: user.name,
       };
     });
-
-    return {
-      statusCode: 200,
-      content: formattedContent,
-      dateTime: new Date().toISOString(),
-    };
   }
 
   async findDetailJobByName(name: string) {
-    const job = await this.prisma.job.findMany({
+    const jobs = await this.prisma.job.findMany({
       where: { job_name: { contains: name } },
       include: {
         detail_subcategory: {
@@ -260,29 +183,17 @@ export class JobService {
             subcategory: {
               select: {
                 name: true,
-                category: {
-                  select: {
-                    category_name: true,
-                  },
-                },
+                category: { select: { category_name: true } },
               },
             },
           },
         },
-        users: {
-          select: {
-            name: true,
-          },
-        },
+        users: { select: { name: true } },
       },
     });
 
-    const formattedContent = job.map((item) => {
-      const {
-        detail_subcategory: detailSubcategory,
-        users: user,
-        ...jobDetail
-      } = item;
+    return jobs.map((item) => {
+      const { detail_subcategory: detailSubcategory, users: user, ...jobDetail } = item;
       return {
         id: item.id,
         job: jobDetail,
@@ -292,28 +203,20 @@ export class JobService {
         name_user_created: user.name,
       };
     });
-
-    return {
-      statusCode: 200,
-      content: formattedContent,
-      dateTime: new Date().toISOString(),
-    };
   }
 
-  async uploadPicture(id: number, file: Express.Multer.File) {
+  async uploadPicture(id: number, file: Express.Multer.File, userId: number, userRole: Role) {
+    const job = await this.prisma.job.findUnique({ where: { id } });
+    if (!job) throw new NotFoundException('Job not found');
+    if (job.user_created !== userId && userRole !== Role.ADMIN) {
+      throw new ForbiddenException('You do not have permission for this action');
+    }
+
     const uploadImage = await this.cloudinary.uploadImage(file);
 
-    const updatedJob = await this.prisma.job.update({
-      where: { id: id },
-      data: {
-        picture: uploadImage.secure_url,
-      },
+    return this.prisma.job.update({
+      where: { id },
+      data: { picture: uploadImage.secure_url },
     });
-
-    return {
-      statusCode: 201,
-      content: updatedJob,
-      dateTime: new Date().toISOString(),
-    };
   }
 }

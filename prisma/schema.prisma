@@ -8,9 +8,16 @@ datasource db {
   provider = "postgresql"
 }
 
+model auth {
+  id            Int     @id @default(autoincrement())
+  refresh_token String?
+  user_id       Int?
+  users         users?  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_auth_users")
+}
+
 model category {
   id            Int           @id @default(autoincrement())
-  category_name String?       @db.VarChar(255)
+  category_name String?       @unique @db.VarChar(255)
   subcategory   subcategory[]
 }
 
@@ -31,6 +38,8 @@ model detail_subcategory {
   subcategory_id Int?
   subcategory    subcategory? @relation(fields: [subcategory_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_detail_subcategory_subcategory")
   job            job[]
+
+  @@unique([name, subcategory_id])
 }
 
 model job {
@@ -62,7 +71,7 @@ model rent_job {
 
 model skill {
   id   Int     @id @default(autoincrement())
-  name String? @db.VarChar(255)
+  name String? @unique @db.VarChar(255)
 }
 
 model subcategory {
@@ -72,17 +81,19 @@ model subcategory {
   category_id        Int?
   detail_subcategory detail_subcategory[]
   category           category?            @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_subcategory_category")
+
+  @@unique([name, category_id])
 }
 
 model users {
   id            Int        @id @default(autoincrement())
   name          String?    @db.VarChar(255)
-  email         String?    @db.VarChar(255)
+  email         String?    @unique @db.VarChar(255)
   password      String?    @db.VarChar(255)
   phone         String?    @db.VarChar(20)
   birthday      DateTime?  @db.Date
   gender        String?    @db.VarChar(10)
-  role          String?    @db.VarChar(50)
+  role          Role?      @default(USER)
   skill         String[]
   certification String[]
   avatar        String?
@@ -92,9 +103,7 @@ model users {
   rent_job      rent_job[]
 }
 
-model auth {
-  id            Int     @id @default(autoincrement())
-  refresh_token String?
-  user_id       Int?
-  users         users?  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_auth_users")
+enum Role {
+  USER
+  ADMIN
 }

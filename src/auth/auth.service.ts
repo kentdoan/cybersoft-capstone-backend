@@ -4,6 +4,7 @@ import { LoginAuthDto } from './dto/login-auth.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { excludePassword } from 'src/common/helpers/exclude-password.helper';
 
 @Injectable()
 export class AuthService {
@@ -15,16 +16,7 @@ export class AuthService {
   async register(registerDto: RegisterAuthDto) {
     const { email, password, name, phone, birthday, gender } = registerDto;
 
-    const existingUser = await this.prisma.users.findFirst({
-      where: { email },
-    });
-
-    if (existingUser) {
-      throw new BadRequestException('Email này đã được sử dụng');
-    }
-
     const hashedPassword = await bcrypt.hash(password, 10);
-    const parsedBirthday = birthday ? new Date(birthday) : null;
 
     const newUser = await this.prisma.users.create({
       data: {
@@ -33,18 +25,11 @@ export class AuthService {
         name,
         phone,
         gender,
-        birthday: parsedBirthday,
+        birthday,
       },
     });
 
-    const { password: _, ...userWithoutPassword } = newUser;
-
-    return {
-      statusCode: 201,
-      message: 'Đăng ký thành công',
-      content: userWithoutPassword,
-      dateTime: new Date().toISOString(),
-    };
+    return excludePassword(newUser);
   }
 
   async login(loginDto: LoginAuthDto) {
@@ -55,13 +40,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
+      throw new UnauthorizedException('Incorrect email or password');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
+      throw new UnauthorizedException('Incorrect email or password');
     }
 
     const payload = { email: user.email, id: user.id, role: user.role };
@@ -77,13 +62,12 @@ export class AuthService {
       },
     });
 
-    const { password: dbPassword, ...userInfo } = user;
-    return { access_token, refresh_token, user: userInfo };
+    return { access_token, refresh_token, user: excludePassword(user) };
   }
 
   async refreshToken(refreshToken: string) {
     if (!refreshToken) {
-      throw new UnauthorizedException('Không tìm thấy Refresh Token');
+      throw new UnauthorizedException('Refresh Token not found');
     }
 
     try {
@@ -94,7 +78,7 @@ export class AuthService {
       });
 
       if (!user) {
-        throw new UnauthorizedException('Người dùng không tồn tại');
+        throw new UnauthorizedException('User does not exist');
       }
 
       const authTokens = await this.prisma.auth.findMany({
@@ -111,7 +95,7 @@ export class AuthService {
       }
 
       if (!validAuth) {
-        throw new UnauthorizedException('Refresh Token không hợp lệ hoặc đã đăng xuất');
+        throw new UnauthorizedException('Invalid Refresh Token or already logged out');
       }
 
       const newPayload = { email: user.email, id: user.id, role: user.role };
@@ -126,7 +110,7 @@ export class AuthService {
 
       return { access_token: new_access_token, refresh_token: new_refresh_token };
     } catch (error) {
-      throw new UnauthorizedException('Refresh Token không hợp lệ hoặc đã hết hạn');
+      throw new UnauthorizedException('Invalid or expired Refresh Token');
     }
   }
 
@@ -159,10 +143,5 @@ export class AuthService {
       }
     }
     
-    return {
-      statusCode: 200,
-      message: 'Đăng xuất thành công',
-      dateTime: new Date().toISOString(),
-    };
   }
 }
