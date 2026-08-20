@@ -32,7 +32,12 @@ export class JobController {
   @ApiBearerAuth()
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/job')
-  @ApiOperation({ summary: '[Require: USER]' })
+  @ApiOperation({ 
+    summary: '[Yêu cầu: USER]',
+    description: `Tạo một công việc mới.
+    
+Yêu cầu người dùng đã đăng nhập. Hệ thống tự động gán tài khoản hiện tại làm người tạo công việc.` 
+  })
   @ResponseMessage('Create job successfully')
   @Post()
   create(
@@ -58,7 +63,16 @@ export class JobController {
   })
   @UseInterceptors(FileInterceptor('file'), ClearCacheInterceptor)
   @ClearCache('/api/job', '/api/job/:id', '/api/job/detail-job/:id')
-  @ApiOperation({ summary: '[Require: ADMIN, (owning) USER]' })
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN, Chủ sở hữu]',
+    description: `Tải lên hình ảnh minh họa cho công việc.
+
+**Yêu cầu phân quyền**:
+
+- **Người dùng thông thường (USER)**: Chỉ có thể tải ảnh lên cho những công việc do **chính mình tạo ra**.
+
+- **Quản trị viên (ADMIN)**: Được cấp quyền tối thượng, có thể tải ảnh lên cho **bất kỳ công việc nào** trong hệ thống.`
+  })
   @ResponseMessage('Upload job picture successfully')
   uploadPicture(
     @Param('id') id: string,
@@ -71,6 +85,10 @@ export class JobController {
 
   @Public()
   @UseInterceptors(CacheInterceptor)
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy danh sách toàn bộ công việc. API này là Public, mọi người đều có thể xem.` 
+  })
   @ResponseMessage('Get all jobs successfully')
   @Get()
   findAll() {
@@ -78,6 +96,10 @@ export class JobController {
   }
 
   @Public()
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy danh sách công việc có phân trang. API này là Public, mọi người đều có thể xem.` 
+  })
   @ResponseMessage('Get jobs with pagination successfully')
   @Get('paging')
   findPaging(@Query() paginationDto: PaginationDto) {
@@ -85,6 +107,10 @@ export class JobController {
   }
 
   @Public()
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy danh sách menu loại công việc kèm theo chi tiết. API này là Public.` 
+  })
   @ResponseMessage('Get list of categories with details successfully')
   @Get('list-category')
   findListCategoryWithDetail() {
@@ -92,6 +118,10 @@ export class JobController {
   }
 
   @Public()
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy thông tin chi tiết của một loại công việc (bao gồm các nhóm chi tiết) dựa vào ID. API này là Public.` 
+  })
   @ResponseMessage('Get category with details successfully')
   @Get('list-category/:id')
   findListCategoryWithDetailByID(@Param('id') id: string) {
@@ -99,6 +129,10 @@ export class JobController {
   }
 
   @Public()
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy danh sách các công việc thuộc về một nhóm chi tiết loại công việc cụ thể. API này là Public.` 
+  })
   @ResponseMessage('Get jobs by detail subcategory successfully')
   @Get('list-detail-job/:detail_subcategory_id')
   findJobByDetailSubcategoryID(
@@ -109,6 +143,10 @@ export class JobController {
 
   @Public()
   @UseInterceptors(CacheInterceptor)
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy thông tin chi tiết toàn diện của một công việc dựa vào ID (bao gồm thông tin người tạo, loại công việc, v.v.). API này là Public.` 
+  })
   @ResponseMessage('Get detailed job successfully')
   @Get('detail-job/:id')
   findDetailJobById(@Param('id') id: string) {
@@ -116,6 +154,10 @@ export class JobController {
   }
 
   @Public()
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Tìm kiếm danh sách chi tiết các công việc dựa theo tên. API này là Public.` 
+  })
   @ResponseMessage('Search detailed jobs successfully')
   @Get('list-detail-job/search/:name')
   findDetailJobByName(@Param('name') name: string) {
@@ -124,6 +166,10 @@ export class JobController {
 
   @Public()
   @UseInterceptors(CacheInterceptor)
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy thông tin cơ bản của một công việc dựa vào ID. API này là Public.` 
+  })
   @ResponseMessage('Get job successfully')
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -133,7 +179,16 @@ export class JobController {
   @ApiBearerAuth()
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/job', '/api/job/:id', '/api/job/detail-job/:id')
-  @ApiOperation({ summary: '[Require: ADMIN, (owning) USER]' })
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN, Chủ sở hữu]',
+    description: `Cập nhật thông tin của một công việc.
+
+**Yêu cầu phân quyền**:
+
+- **Người dùng thông thường (USER)**: Chỉ có thể cập nhật những công việc do **chính mình tạo ra**.
+
+- **Quản trị viên (ADMIN)**: Được cấp quyền tối thượng, có thể cập nhật **bất kỳ công việc nào** trong hệ thống.`
+  })
   @ResponseMessage('Update job successfully')
   @Put(':id')
   update(
@@ -148,7 +203,16 @@ export class JobController {
   @ApiBearerAuth()
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/job', '/api/job/:id', '/api/job/detail-job/:id')
-  @ApiOperation({ summary: '[Require: ADMIN, (owning) USER]' })
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN, Chủ sở hữu]',
+    description: `Xóa một công việc.
+
+**Yêu cầu phân quyền**:
+
+- **Người dùng thông thường (USER)**: Chỉ có thể xóa những công việc do **chính mình tạo ra**.
+
+- **Quản trị viên (ADMIN)**: Được cấp quyền tối thượng, có thể xóa **bất kỳ công việc nào** trong hệ thống.`
+  })
   @ResponseMessage('Delete job successfully')
   @Delete(':id')
   remove(

@@ -3,7 +3,7 @@ import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Public } from 'src/common/decorators/public.decorator';
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { ClearCache } from 'src/common/decorators/clear-cache.decorator';
@@ -20,6 +20,10 @@ export class CategoryController {
   @Roles(Role.ADMIN)
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/category')
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]',
+    description: `Thêm mới một loại công việc. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Create category successfully')
   @Post()
   create(@Body() createCategoryDto: CreateCategoryDto) {
@@ -28,6 +32,10 @@ export class CategoryController {
 
   @Public()
   @UseInterceptors(CacheInterceptor)
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy danh sách toàn bộ các loại công việc. API này là Public, mọi người đều có thể xem.` 
+  })
   @ResponseMessage('Get all categories successfully')
   @Get()
   findAll() {
@@ -35,6 +43,10 @@ export class CategoryController {
   }
 
   @Public()
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy danh sách loại công việc có phân trang. API này là Public, mọi người đều có thể xem.` 
+  })
   @ResponseMessage('Get categories with pagination successfully')
   @Get('paging')
   findPaging(@Query() paging: PaginationDto) {
@@ -43,6 +55,10 @@ export class CategoryController {
 
   @Public()
   @UseInterceptors(CacheInterceptor)
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy thông tin chi tiết của một loại công việc dựa vào ID. API này là Public, mọi người đều có thể xem.` 
+  })
   @ResponseMessage('Get category successfully')
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -53,6 +69,10 @@ export class CategoryController {
   @Roles(Role.ADMIN)
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/category', '/api/category/:id')
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]',
+    description: `Cập nhật thông tin của một loại công việc. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Update category successfully')
   @Put(':id')
   update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
@@ -63,6 +83,10 @@ export class CategoryController {
   @Roles(Role.ADMIN)
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/category', '/api/category/:id')
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]',
+    description: `Xóa một loại công việc. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Delete category successfully')
   @Delete(':id')
   remove(@Param('id') id: string) {

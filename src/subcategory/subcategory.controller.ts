@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param, Delete, Put, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { SubcategoryService } from './subcategory.service';
 import { CreateSubcategoryDto, DetailSubcategoryDto } from './dto/create-subcategory.dto';
 import { UpdateDetailSubcategoryDto, UpdateSubcategoryDto } from './dto/update-subcategory.dto';
@@ -21,6 +21,10 @@ export class SubcategoryController {
   @Roles(Role.ADMIN)
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/subcategory')
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]',
+    description: `Thêm mới một nhóm chi tiết loại công việc (Subcategory). Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Create subcategory successfully')
   @Post()
   create(@Body() createSubcategoryDto: CreateSubcategoryDto) {
@@ -29,6 +33,10 @@ export class SubcategoryController {
 
   @Public()
   @UseInterceptors(CacheInterceptor)
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy danh sách tất cả các nhóm chi tiết loại công việc. API này là Public, mọi người đều có thể xem.` 
+  })
   @ResponseMessage('Get all subcategories successfully')
   @Get()
   findAll() {
@@ -36,6 +44,10 @@ export class SubcategoryController {
   }
 
   @Public()
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy danh sách nhóm chi tiết loại công việc có phân trang. API này là Public, mọi người đều có thể xem.` 
+  })
   @ResponseMessage('Get subcategories with pagination successfully')
   @Get('paging')
   findPaging(@Query() pagingSubCategoryDto: PaginationDto){
@@ -44,6 +56,10 @@ export class SubcategoryController {
 
   @Public()
   @UseInterceptors(CacheInterceptor)
+  @ApiOperation({ 
+    summary: '[Public]',
+    description: `Lấy thông tin của một nhóm chi tiết loại công việc dựa vào ID. API này là Public, mọi người đều có thể xem.` 
+  })
   @ResponseMessage('Get subcategory successfully')
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -54,6 +70,10 @@ export class SubcategoryController {
   @Roles(Role.ADMIN)
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/subcategory', '/api/subcategory/:id')
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]',
+    description: `Cập nhật thông tin của một nhóm chi tiết loại công việc. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Update subcategory successfully')
   @Put(':id')
   update(@Param('id') id: string, @Body() updateSubcategoryDto: UpdateSubcategoryDto) {
@@ -64,6 +84,10 @@ export class SubcategoryController {
   @Roles(Role.ADMIN)
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/subcategory', '/api/subcategory/:id')
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]',
+    description: `Xóa một nhóm chi tiết loại công việc khỏi hệ thống. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Delete subcategory successfully')
   @Delete(':id')
   remove(@Param('id') id: string) {
@@ -87,6 +111,10 @@ export class SubcategoryController {
   })
   @UseInterceptors(FileInterceptor('file'), ClearCacheInterceptor)
   @ClearCache('/api/subcategory', '/api/subcategory/:id')
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]',
+    description: `Tải lên hình ảnh minh họa cho nhóm chi tiết loại công việc. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Upload subcategory picture successfully')
   uploadPicture(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
     return this.subcategoryService.uploadPicture(+id, file);
@@ -97,6 +125,10 @@ export class SubcategoryController {
   @Roles(Role.ADMIN)
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/subcategory', '/api/subcategory/:id')
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]',
+    description: `Thêm mới một hoặc nhiều chi tiết phụ (Detail Subcategory) vào nhóm chi tiết loại công việc. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Create detail subcategories successfully')
   @Post(':id/detail')
   @ApiBody({ type: [DetailSubcategoryDto] })
@@ -108,6 +140,10 @@ export class SubcategoryController {
   @Roles(Role.ADMIN)
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/subcategory', '/api/subcategory/:subcategory_id')
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]',
+    description: `Cập nhật thông tin của một chi tiết phụ (Detail Subcategory). Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Update detail subcategory successfully')
   @Put(':subcategory_id/detail/:id')
   @ApiBody({ type: UpdateDetailSubcategoryDto })
@@ -119,6 +155,10 @@ export class SubcategoryController {
   @Roles(Role.ADMIN)
   @UseInterceptors(ClearCacheInterceptor)
   @ClearCache('/api/subcategory', '/api/subcategory/:subcategory_id')
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]',
+    description: `Xóa một chi tiết phụ (Detail Subcategory) khỏi hệ thống. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Delete detail subcategory successfully')
   @Delete(':subcategory_id/detail/:id')
   deleteListSubCategory(@Param('subcategory_id') subcategory_id: string, @Param('id') id: string){

@@ -27,7 +27,11 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Public()
-  @ApiOperation({ summary: "Open for testing (creating ADMIN account)" })
+  @ApiOperation({ 
+    summary: '[Public]', 
+    description: `Tạo tài khoản người dùng hoặc quản trị viên mới. 
+API này đang được mở công khai để phục vụ mục đích kiểm thử (dễ dàng tạo tài khoản ADMIN).`
+  })
   @ResponseMessage('Create user successfully')
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -49,7 +53,16 @@ export class UsersController {
     },
   })
   @UseInterceptors(FileInterceptor('file'))
-  @ApiOperation({ summary: '[Require: ADMIN, (owning) USER]' })
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN, Chủ sở hữu]',
+    description: `Cập nhật ảnh đại diện cho tài khoản.
+
+**Yêu cầu phân quyền**:
+
+- **Người dùng thông thường (USER)**: Chỉ có thể cập nhật ảnh đại diện của **chính mình**.
+
+- **Quản trị viên (ADMIN)**: Được cấp quyền tối thượng, có thể cập nhật ảnh đại diện của **bất kỳ người dùng nào** trong hệ thống.`
+  })
   @ResponseMessage('Upload user avatar successfully')
   uploadAvatar(
     @CurrentUser('id') id: string,
@@ -60,6 +73,10 @@ export class UsersController {
 
   @ApiBearerAuth()
   @Roles(Role.ADMIN)
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]', 
+    description: `Lấy danh sách toàn bộ người dùng trong hệ thống. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Get all users successfully')
   @Get()
   findAll() {
@@ -68,6 +85,10 @@ export class UsersController {
 
   @ApiBearerAuth()
   @Roles(Role.ADMIN)
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]', 
+    description: `Lấy danh sách người dùng có phân trang và tìm kiếm theo từ khóa. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Get users with pagination successfully')
   @Get('paging')
   findPaging(@Query() paginationDto: PaginationDto) {
@@ -76,6 +97,10 @@ export class UsersController {
 
   @ApiBearerAuth()
   @Roles(Role.ADMIN)
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]', 
+    description: `Tìm kiếm danh sách người dùng theo tên. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Search users successfully')
   @Get('search/:name')
   findUserByName(@Param('name') name: string) {
@@ -83,6 +108,10 @@ export class UsersController {
   }
 
   @Public()
+  @ApiOperation({ 
+    summary: '[Public]', 
+    description: `Lấy thông tin chi tiết của một người dùng bất kỳ dựa vào ID. Mọi người đều có thể xem mà không cần đăng nhập.` 
+  })
   @ResponseMessage('Get user successfully')
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -91,6 +120,10 @@ export class UsersController {
 
   @ApiBearerAuth()
   @Roles(Role.ADMIN)
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]', 
+    description: `Cập nhật thông tin của bất kỳ người dùng nào trong hệ thống. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Update user successfully')
   @Put(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
@@ -99,6 +132,10 @@ export class UsersController {
 
   @ApiBearerAuth()
   @Roles(Role.ADMIN)
+  @ApiOperation({ 
+    summary: '[Yêu cầu: ADMIN]', 
+    description: `Xóa một người dùng khỏi hệ thống. Chỉ dành cho tài khoản quản trị viên.` 
+  })
   @ResponseMessage('Delete user successfully')
   @Delete(':id')
   remove(@Param('id') id: string) {

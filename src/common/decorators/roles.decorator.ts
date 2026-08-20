@@ -6,6 +6,6 @@ export const ROLES_KEY = 'roles';
 export const Roles = (...roles: Role[]) => {
   return applyDecorators(
     SetMetadata(ROLES_KEY, roles),
-    ApiOperation({ summary: `[Require: ${roles.join(', ')}]` })
+    ApiOperation({ summary: `[Yêu cầu: ${roles.join(', ')}]` })
   );
 };
